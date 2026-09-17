@@ -9,13 +9,14 @@ _crewai_cache.mark_cache_breakpoint = lambda msg: msg  # type: ignore[assignment
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from paste_gate_crew.crew import PasteGateCrew
 
 VAULT_DIR = Path("obsidian_reports")
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -57,19 +58,9 @@ def _risk_from_report(report: str) -> tuple[str, int]:
     return "low", count
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=FileResponse)
 async def root():
-    return """<!doctype html><html><head><meta charset="utf-8">
-    <title>Paste Gate API</title>
-    <style>body{font-family:system-ui,sans-serif;background:#0e0c0a;color:#e8e0d0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}
-    .card{text-align:center;padding:40px;border:1px solid #2e2a24;border-radius:16px;background:#181410;}
-    h1{margin:0 0 8px;font-size:1.6rem;color:#c9a96e;}span{font-size:.85rem;color:#7a6e60;}
-    a{color:#c9a96e;text-decoration:none;margin:0 12px;font-size:.9rem;}a:hover{text-decoration:underline;}</style>
-    </head><body><div class="card">
-    <h1>🛡 Paste Gate API</h1>
-    <span>v2.4.0 — running</span><br><br>
-    <a href="/health">/health</a><a href="/docs">/docs</a>
-    </div></body></html>"""
+    return FileResponse(STATIC_DIR / "index.html", media_type="text/html")
 
 
 @app.get("/health")

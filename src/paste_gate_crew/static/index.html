@@ -1,0 +1,774 @@
+<title>Paste Gate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --bg:#0e0c09;--surf:#1c1812;--surf2:#252019;
+  --bdr:rgba(201,169,110,.11);--bdr2:rgba(201,169,110,.22);
+  --tx:#e8dccf;--txm:#9a8a78;--txd:#4e4338;
+  --ac:#c9a96e;--acs:rgba(201,169,110,.09);
+  --hi:#d95f4b;--me:#d4954a;--lo:#7aad6e;
+  --tag-bg:rgba(201,169,110,.11);--tag-bd:rgba(201,169,110,.26);
+  --max:720px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
+  font-family:'Google Sans',-apple-system,sans-serif;font-size:15px;line-height:1.6;}
+
+.app{display:flex;flex-direction:column;height:100%;}
+
+/* TOPBAR */
+.tb{display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:54px;flex-shrink:0;}
+.menu-btn{width:40px;height:40px;border-radius:50%;border:none;background:none;
+  color:var(--txm);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;transition:background .15s;}
+.menu-btn:hover{background:var(--surf);}
+.brand{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:var(--tx);}
+.tb-r{display:flex;align-items:center;gap:8px;}
+.tb-pill{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;
+  border:1px solid var(--bdr2);background:none;color:var(--txm);cursor:pointer;
+  font-size:12.5px;font-family:inherit;transition:background .15s,color .15s;}
+.tb-pill:hover{background:var(--surf2);color:var(--tx);}
+.av{width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,#6b4e28,var(--ac));
+  border:none;cursor:pointer;font-size:12px;font-weight:700;
+  color:#0e0c09;display:flex;align-items:center;justify-content:center;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+
+/* LANDING */
+.landing{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:38px;padding:0 24px;z-index:2;
+  transition:opacity .35s,transform .35s;}
+.landing.gone{opacity:0;pointer-events:none;transform:translateY(-16px);}
+.l-heading{font-size:clamp(28px,5vw,40px);font-weight:400;color:var(--tx);
+  text-align:center;letter-spacing:-.015em;}
+.l-sub{font-size:14px;color:var(--txm);text-align:center;margin-top:10px;}
+.l-chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;max-width:560px;}
+.chip{padding:9px 18px;border-radius:22px;border:1px solid var(--bdr2);font-size:13.5px;
+  color:var(--txm);cursor:pointer;background:none;font-family:inherit;
+  transition:background .15s,color .15s,border-color .15s;}
+.chip:hover{background:var(--surf2);color:var(--tx);border-color:rgba(201,169,110,.35);}
+
+/* CHAT */
+.chat{flex:1;overflow-y:auto;position:relative;z-index:1;}
+.chat::-webkit-scrollbar{width:4px;}
+.chat::-webkit-scrollbar-thumb{background:var(--surf2);border-radius:2px;}
+.msgs{max-width:var(--max);margin:0 auto;padding:24px 24px 6px;}
+
+/* User bubble */
+.mu{display:flex;justify-content:flex-end;margin-bottom:32px;}
+.u-bub{background:var(--surf2);border-radius:20px 20px 4px 20px;
+  padding:13px 18px;max-width:82%;font-size:14px;line-height:1.7;
+  color:var(--tx);white-space:pre-wrap;word-break:break-word;}
+
+/* Aria row */
+.ma{display:flex;align-items:flex-start;gap:14px;margin-bottom:10px;}
+.a-icon{width:34px;height:34px;border-radius:50%;flex-shrink:0;position:relative;
+  background:linear-gradient(135deg,#5a3e18,#c9a96e);
+  display:flex;align-items:center;justify-content:center;margin-top:2px;}
+.a-dot{position:absolute;bottom:0;right:0;width:8px;height:8px;border-radius:50%;
+  background:var(--lo);border:2px solid var(--bg);}
+.a-body{flex:1;min-width:0;}
+.a-name{font-size:13px;font-weight:500;color:var(--ac);margin-bottom:10px;}
+
+/* AGENT CHIPS */
+.agents{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+
+.ag{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:9px 15px;border-radius:24px;border:1px solid var(--bdr);
+  background:var(--surf);font-size:12px;font-family:'IBM Plex Mono',monospace;
+  color:var(--txd);width:fit-content;min-width:220px;
+  opacity:0;transform:translateY(6px);
+}
+.ag.appear{animation:chipIn .25s ease forwards;}
+@keyframes chipIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.ag.active{
+  color:var(--txm);border-color:rgba(201,169,110,.22);
+  background:linear-gradient(90deg,var(--surf) 0%,var(--surf2) 50%,var(--surf) 100%);
+  background-size:200% 100%;
+  animation:chipIn .25s ease forwards,shimmer 1.8s .25s infinite;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.ag.done{
+  color:var(--lo);border-color:rgba(122,173,110,.22);
+  background:rgba(122,173,110,.05);
+  animation:chipIn .25s ease forwards;
+}
+
+.ag-svg{width:18px;height:18px;flex-shrink:0;opacity:.5;}
+.ag.active .ag-svg{opacity:1;}
+.ag.done .ag-svg{opacity:.7;}
+
+.ag-label{font-weight:500;letter-spacing:.01em;}
+.ag-sub{color:var(--txd);font-size:11px;flex:1;}
+.ag.active .ag-sub{color:var(--txm);}
+.ag.done .ag-sub{color:rgba(122,173,110,.55);}
+
+.ag-spinner{display:flex;gap:3px;align-items:center;margin-left:auto;}
+.sd{width:4px;height:4px;border-radius:50%;background:var(--ac);animation:sd 1s infinite;}
+.sd:nth-child(2){animation-delay:.15s;} .sd:nth-child(3){animation-delay:.3s;}
+@keyframes sd{0%,60%,100%{opacity:.2;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+.ag.done .ag-spinner{display:none;}
+
+.ag-check{display:none;color:var(--lo);margin-left:auto;font-size:13px;}
+.ag.done .ag-check{display:block;}
+
+/* Result */
+.a-text{font-size:14px;line-height:1.72;color:var(--txm);margin-bottom:14px;}
+.a-text strong{color:var(--tx);font-weight:500;}
+
+.red-block{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;
+  padding:16px 18px;margin-bottom:14px;
+  font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.9;
+  color:var(--tx);word-break:break-word;white-space:pre-wrap;}
+.rtag{background:var(--tag-bg);border:1px solid var(--tag-bd);
+  border-radius:3px;padding:1px 5px;color:var(--ac);
+  font-size:10.5px;font-weight:500;white-space:nowrap;}
+
+.actions{display:flex;align-items:center;gap:2px;margin-bottom:4px;flex-wrap:wrap;}
+.act{width:36px;height:36px;border-radius:50%;border:none;background:none;
+  color:var(--txd);cursor:pointer;font-size:17px;display:flex;align-items:center;
+  justify-content:center;transition:background .15s,color .15s;}
+.act:hover{background:var(--surf2);color:var(--txm);}
+.act-svg{width:18px;height:18px;}
+.risk-chip{display:inline-flex;align-items:center;gap:5px;margin-left:8px;
+  font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  font-family:'IBM Plex Mono',monospace;padding:4px 12px;border-radius:12px;
+  cursor:pointer;transition:opacity .15s;}
+.risk-chip:hover{opacity:.75;}
+.r-hi{color:var(--hi);background:rgba(217,95,75,.09);border:1px solid rgba(217,95,75,.18);}
+.r-me{color:var(--me);background:rgba(212,149,74,.09);border:1px solid rgba(212,149,74,.18);}
+.r-lo{color:var(--lo);background:rgba(122,173,110,.09);border:1px solid rgba(122,173,110,.18);}
+
+.audit{display:none;margin-top:8px;border-left:2px solid var(--bdr2);
+  padding-left:14px;margin-bottom:8px;}
+.audit.show{display:block;}
+.audit-row{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 0;border-bottom:1px solid rgba(201,169,110,.05);}
+.audit-row:last-child{border:none;}
+.audit-k{font-size:12px;color:var(--txm);font-family:'IBM Plex Mono',monospace;}
+.audit-v{font-size:11px;color:var(--ac);font-family:'IBM Plex Mono',monospace;}
+.audit-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.audit-pill{font-size:10px;color:var(--txd);font-family:'IBM Plex Mono',monospace;
+  background:var(--surf);border-radius:4px;padding:2px 8px;border:1px solid var(--bdr);}
+.gap{height:28px;}
+
+/* INPUT */
+.ibar{flex-shrink:0;padding:10px 24px 20px;position:relative;z-index:10;}
+.ibar-inner{max-width:var(--max);margin:0 auto;}
+.ibox{display:flex;align-items:flex-end;gap:0;background:var(--surf);
+  border:1px solid var(--bdr2);border-radius:24px;padding:10px 10px 10px 20px;
+  transition:border-color .2s,box-shadow .2s;}
+.ibox:focus-within{border-color:rgba(201,169,110,.38);box-shadow:0 0 0 4px rgba(201,169,110,.06);}
+.ifield{flex:1;background:none;border:none;outline:none;font-size:14.5px;
+  font-family:inherit;color:var(--tx);resize:none;line-height:1.5;
+  max-height:140px;overflow-y:auto;padding:3px 0;min-height:28px;}
+.ifield::placeholder{color:var(--txd);}
+.ifield::-webkit-scrollbar{width:3px;}
+.ibar-r{display:flex;align-items:center;gap:7px;flex-shrink:0;padding-left:10px;}
+.mode-tag{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--txm);
+  border:1px solid var(--bdr);border-radius:12px;padding:4px 11px;
+  cursor:pointer;background:none;transition:background .12s;white-space:nowrap;}
+.mode-tag:hover{background:var(--surf2);}
+.sbtn{width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--ac);color:#0e0c09;display:flex;align-items:center;
+  justify-content:center;transition:background .12s,transform .08s,box-shadow .12s;flex-shrink:0;}
+.sbtn:hover{background:#d4b87a;box-shadow:0 0 14px rgba(201,169,110,.28);}
+.sbtn:active{transform:scale(.93);}
+.sbtn:disabled{background:var(--txd);cursor:not-allowed;box-shadow:none;transform:none;}
+.ibar-hint{text-align:center;font-size:11px;color:var(--txd);margin-top:8px;
+  font-family:'IBM Plex Mono',monospace;}
+
+/* SIDEBAR */
+.sb-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
+  opacity:0;pointer-events:none;transition:opacity .22s;}
+.sb-ov.on{opacity:1;pointer-events:auto;}
+.sb-panel{position:fixed;top:0;left:0;bottom:0;width:272px;background:var(--surf);
+  z-index:51;transform:translateX(-100%);transition:transform .22s;
+  display:flex;flex-direction:column;border-right:1px solid var(--bdr);}
+.sb-panel.on{transform:translateX(0);}
+.sb-head{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--bdr);}
+.sb-title{font-size:14px;font-weight:500;color:var(--tx);}
+.sb-close{border:none;background:none;color:var(--txm);cursor:pointer;font-size:20px;
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;transition:background .12s;}
+.sb-close:hover{background:var(--surf2);}
+.sb-new{margin:12px;padding:10px;border-radius:10px;background:var(--ac);
+  border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;
+  color:#0e0c09;display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:background .12s;}
+.sb-new:hover{background:#d4b87a;}
+.sb-lbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--txd);padding:4px 16px 6px;font-family:'IBM Plex Mono',monospace;}
+.sessions{flex:1;overflow-y:auto;padding:0 8px;}
+.sess{padding:9px 10px;border-radius:8px;cursor:pointer;transition:background .12s;margin-bottom:1px;}
+.sess:hover,.sess.act{background:var(--surf2);}
+.sess-n{font-size:12px;color:var(--tx);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;margin-bottom:2px;font-family:'IBM Plex Mono',monospace;}
+.sess-s{font-size:11px;color:var(--txm);margin-bottom:4px;}
+.sess-f{display:flex;align-items:center;justify-content:space-between;}
+.rbadge{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 6px;border-radius:3px;font-family:'IBM Plex Mono',monospace;}
+.sess-t{font-size:10px;color:var(--txd);font-family:'IBM Plex Mono',monospace;}
+.sb-foot{border-top:1px solid var(--bdr);padding:12px 16px;font-size:12px;color:var(--txm);}
+
+/* ── ONBOARDING ── */
+.ob-ov{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(8,6,4,.82);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+  transition:opacity .3s;
+}
+.ob-ov.out{opacity:0;pointer-events:none;}
+.ob-card{
+  background:var(--surf);border:1px solid var(--bdr2);border-radius:20px;
+  width:100%;max-width:460px;overflow:hidden;
+  box-shadow:0 32px 80px rgba(0,0,0,.6);
+}
+.ob-progress{display:flex;gap:5px;padding:20px 24px 0;}
+.ob-pip{height:3px;flex:1;border-radius:3px;background:var(--surf2);transition:background .3s;}
+.ob-pip.done{background:var(--ac);}
+.ob-body{padding:32px 28px 24px;min-height:280px;display:flex;flex-direction:column;align-items:center;text-align:center;}
+.ob-icon{margin-bottom:20px;}
+.ob-title{font-size:20px;font-weight:500;color:var(--tx);margin-bottom:10px;letter-spacing:-.01em;}
+.ob-text{font-size:13.5px;color:var(--txm);line-height:1.7;max-width:360px;}
+.ob-text strong{color:var(--tx);font-weight:500;}
+/* step 3: agent preview pills */
+.ob-agents{display:flex;flex-direction:column;gap:8px;margin-top:16px;width:100%;}
+.ob-ag{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-radius:14px;border:1px solid var(--bdr);background:var(--surf2);text-align:left;}
+.ob-ag-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;}
+.ob-ag-ico.s{background:rgba(201,169,110,.12);color:var(--ac);}
+.ob-ag-ico.j{background:rgba(212,149,74,.1);color:var(--me);}
+.ob-ag-ico.r{background:rgba(122,173,110,.1);color:var(--lo);}
+.ob-ag-txt{}
+.ob-ag-name{font-size:12.5px;font-weight:500;color:var(--tx);font-family:'IBM Plex Mono',monospace;}
+.ob-ag-desc{font-size:11px;color:var(--txm);}
+.ob-footer{display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px 24px;}
+.ob-skip{background:none;border:none;font-size:13px;color:var(--txd);cursor:pointer;
+  font-family:inherit;transition:color .15s;}
+.ob-skip:hover{color:var(--txm);}
+.ob-next{display:flex;align-items:center;gap:6px;padding:10px 22px;border-radius:22px;
+  background:var(--ac);border:none;cursor:pointer;font-family:inherit;
+  font-size:14px;font-weight:500;color:#0e0c09;transition:background .12s,transform .08s;}
+.ob-next:hover{background:#d4b87a;}
+.ob-next:active{transform:scale(.97);}
+.ob-dots-row{display:flex;gap:7px;padding:0 24px 20px;justify-content:center;}
+.ob-dot{width:6px;height:6px;border-radius:50%;background:var(--surf2);
+  transition:background .2s,transform .2s;}
+.ob-dot.on{background:var(--ac);transform:scale(1.25);}
+
+@media(max-width:600px){
+  .ibar{padding:8px 14px 16px;} .msgs{padding:16px 16px 6px;}
+  .tb{padding:0 14px;} .mode-tag{display:none;} .u-bub{max-width:95%;}
+}
+</style>
+
+<!-- SVG ICON DEFS (hidden, referenced by use) -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Brand / Aria shield -->
+    <symbol id="ico-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L4 6v6c0 5.25 3.5 10 8 12 4.5-2 8-6.75 8-12V6L12 2z"/>
+      <line x1="9" y1="12" x2="11" y2="14"/>
+      <line x1="11" y1="14" x2="15" y2="10"/>
+    </symbol>
+    <!-- Scrubber: magnifier with strike -->
+    <symbol id="ico-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="10" cy="10" r="6"/>
+      <line x1="14.5" y1="14.5" x2="20" y2="20"/>
+      <line x1="7" y1="10" x2="13" y2="10"/>
+    </symbol>
+    <!-- Judge: scales -->
+    <symbol id="ico-judge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="3" x2="12" y2="21"/>
+      <path d="M5 21h14"/>
+      <path d="M5 9l-2 5h4L5 9z"/>
+      <path d="M19 9l-2 5h4L19 9z"/>
+      <line x1="5" y1="9" x2="19" y2="9"/>
+    </symbol>
+    <!-- Reporter: document with lines -->
+    <symbol id="ico-report" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="2" width="14" height="20" rx="2"/>
+      <line x1="9" y1="8" x2="15" y2="8"/>
+      <line x1="9" y1="12" x2="15" y2="12"/>
+      <line x1="9" y1="16" x2="12" y2="16"/>
+    </symbol>
+    <!-- Menu hamburger -->
+    <symbol id="ico-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <line x1="4" y1="6" x2="20" y2="6"/>
+      <line x1="4" y1="12" x2="20" y2="12"/>
+      <line x1="4" y1="18" x2="20" y2="18"/>
+    </symbol>
+    <!-- Copy -->
+    <symbol id="ico-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2"/>
+      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+    </symbol>
+    <!-- Thumbs up -->
+    <symbol id="ico-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/>
+      <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>
+    </symbol>
+    <!-- Thumbs down -->
+    <symbol id="ico-dn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/>
+      <path d="M17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/>
+    </symbol>
+    <!-- Send/shield arrow -->
+    <symbol id="ico-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L4 6v6c0 5.25 3.5 10 8 12 4.5-2 8-6.75 8-12V6L12 2z"/>
+      <polyline points="9 12 11 14 15 10"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <header class="tb">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="menu-btn" onclick="openSb()">
+        <svg width="20" height="20"><use href="#ico-menu"/></svg>
+      </button>
+      <div class="brand">
+        <svg width="18" height="18" style="color:var(--ac)"><use href="#ico-shield"/></svg>
+        Paste Gate
+      </div>
+    </div>
+    <div class="tb-r">
+      <button class="tb-pill">
+        <svg width="13" height="13" style="color:var(--lo)"><use href="#ico-shield"/></svg>
+        Zero-Leak Mode
+      </button>
+      <button class="av">N</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="landing" id="landing">
+      <div>
+        <div class="l-heading">What should we scrub?</div>
+        <div class="l-sub">Aria removes PII and secrets before your text reaches any AI model.</div>
+      </div>
+      <div class="l-chips">
+        <button class="chip" onclick="usePreset(this)">Customer support transcript</button>
+        <button class="chip" onclick="usePreset(this)">AWS credentials &amp; DB URI</button>
+        <button class="chip" onclick="usePreset(this)">Patient clinical notes</button>
+        <button class="chip" onclick="usePreset(this)">SA ID &amp; contact details</button>
+      </div>
+    </div>
+
+    <div class="chat" id="chat">
+      <div class="msgs" id="msgs"></div>
+    </div>
+
+    <div class="ibar">
+      <div class="ibar-inner">
+        <div class="ibox">
+          <textarea id="inp" class="ifield"
+            placeholder="Paste raw payload here…" rows="1"
+            onkeydown="handleKey(event)" oninput="onInp(this)"></textarea>
+          <div class="ibar-r">
+            <button class="mode-tag">Tokenized [TAG]</button>
+            <button class="sbtn" id="sbtn" onclick="submit()">
+              <svg width="20" height="20"><use href="#ico-send"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="ibar-hint">Aria processes in-browser — raw text never leaves your device.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ONBOARDING OVERLAY -->
+<div class="ob-ov" id="obOv">
+  <div class="ob-card">
+    <div class="ob-progress">
+      <div class="ob-pip done" id="pp0"></div>
+      <div class="ob-pip" id="pp1"></div>
+      <div class="ob-pip" id="pp2"></div>
+      <div class="ob-pip" id="pp3"></div>
+    </div>
+
+    <div class="ob-body" id="obBody">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="ob-dots-row">
+      <div class="ob-dot on" id="od0"></div>
+      <div class="ob-dot" id="od1"></div>
+      <div class="ob-dot" id="od2"></div>
+      <div class="ob-dot" id="od3"></div>
+    </div>
+
+    <div class="ob-footer">
+      <button class="ob-skip" id="obSkip" onclick="obDone()">Skip</button>
+      <button class="ob-next" id="obNext" onclick="obNext()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<div class="sb-ov" id="sbOv" onclick="closeSb()"></div>
+<div class="sb-panel" id="sbPanel">
+  <div class="sb-head">
+    <span class="sb-title">Sessions</span>
+    <button class="sb-close" onclick="closeSb()">✕</button>
+  </div>
+  <button class="sb-new" onclick="newScrub();closeSb()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New Scrub
+  </button>
+  <div class="sb-lbl">Recent</div>
+  <div class="sessions" id="sessList"></div>
+  <div class="sb-foot">⚙ Config &amp; Rules &nbsp;·&nbsp; v2.4.0</div>
+</div>
+
+<script>
+const SDATA=[
+  {n:'Stripe Webhook Payload',s:'3 PII entities masked',r:'hi',t:'2m ago'},
+  {n:'User Auth Logs (dump)',s:'JWT tokens sanitized',r:'me',t:'1h ago'},
+  {n:'Customer Feedback Batch',s:'Clean — no violations',r:'lo',t:'Yesterday'},
+  {n:'IBS Config Properties',s:'5 API keys redacted',r:'hi',t:'Sep 16'},
+  {n:'Slack DM Export',s:'12 emails masked',r:'me',t:'Sep 15'},
+];
+const PRESETS={
+  'Customer support transcript':'Agent: Hi Sarah, I can see your account sarah.jenkins@vertexcloud.io is linked to card 4532-8921-9981-3012. Your SSN on file is 482-19-8821. Can you confirm your address at 424 Elm St, Austin TX? The refund of $349 will be processed.',
+  'AWS credentials & DB URI':'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY\nDB_URI=postgresql://admin:p@ssw0rd123@db.internal.prod.fnb.co.za:5432/users',
+  'Patient clinical notes':'Patient: Thabo Mokoena, DOB: 1985-01-14, SA ID: 8501144800083\nPhone: +27 71 234 5678 | Email: thabo.m@netcare.co.za\nDiagnosis: Type 2 Diabetes. Prescribed Metformin 500mg.',
+  'SA ID & contact details':'Hi, my name is Nqobile Dlamini. My SA ID is 9001015009087. You can reach me at nqobile@fnb.co.za or call +27 82 345 6789. My API key is sk-abc123XYZ and the host is db.internal.fnb.co.za.',
+};
+const PATS=[
+  {type:'EMAIL_REDACTED',lbl:'Email Address',re:/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g},
+  {type:'SA_ID_REDACTED',lbl:'SA ID Number',re:/\b[0-9]{13}\b/g},
+  {type:'SSN_REDACTED',lbl:'SSN',re:/\b\d{3}-\d{2}-\d{4}\b/g},
+  {type:'CREDIT_CARD_REDACTED',lbl:'Credit Card',re:/\b[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}\b/g},
+  {type:'API_KEY_REDACTED',lbl:'API / Secret Key',re:/\b(AKIA[A-Z0-9]{16}|[a-z]+[0-9a-zA-Z]{14,}(?=\b))/g},
+  {type:'HOSTNAME_REDACTED',lbl:'Internal Hostname',re:/[a-z][a-z0-9\-]*\.(?:internal|prod|staging)\.[a-z0-9.\-]+/gi},
+  {type:'PHONE_REDACTED',lbl:'Phone Number',re:/\+?[0-9]{1,3}\s?[0-9]{2}\s?[0-9]{3}\s?[0-9]{4}/g},
+  {type:'NAME_REDACTED',lbl:'Full Name',re:/\b(Sarah\s+Jenkins|Thabo\s+Mokoena|Nqobile\s+Dlamini)\b/g},
+  {type:'ADDRESS_REDACTED',lbl:'Postal Address',re:/\d+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:St|Ave|Rd|Dr|Ln|Blvd)\b[^,]*/g},
+];
+
+// Each agent gets a unique icon ID and identity
+const AGENTS=[
+  {ico:'ico-scan',  name:'Scrubber', active:'scanning payload for PII patterns…', done:'patterns matched & redacted'},
+  {ico:'ico-judge', name:'Judge',    active:'reviewing for residual leaks…',        done:'clean pass — no leaks found'},
+  {ico:'ico-report',name:'Reporter', active:'generating compliance record…',         done:'audit record ready'},
+];
+
+let busy=false;
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function buildSessions(){
+  document.getElementById('sessList').innerHTML=SDATA.map((s,i)=>`
+    <div class="sess${i===0?' act':''}">
+      <div class="sess-n">${esc(s.n)}</div>
+      <div class="sess-s">${esc(s.s)}</div>
+      <div class="sess-f">
+        <span class="rbadge r-${s.r}">${s.r==='hi'?'HIGH':s.r==='me'?'MED':'LOW'}</span>
+        <span class="sess-t">${s.t}</span>
+      </div>
+    </div>`).join('');
+}
+function openSb(){document.getElementById('sbPanel').classList.add('on');document.getElementById('sbOv').classList.add('on');}
+function closeSb(){document.getElementById('sbPanel').classList.remove('on');document.getElementById('sbOv').classList.remove('on');}
+function newScrub(){document.getElementById('landing').classList.remove('gone');document.getElementById('msgs').innerHTML='';const inp=document.getElementById('inp');inp.value='';inp.style.height='auto';}
+function usePreset(el){const t=PRESETS[el.textContent.trim()]||'';const inp=document.getElementById('inp');inp.value=t;resize(inp);inp.focus();}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit();}}
+function onInp(el){resize(el);}
+function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,140)+'px';}
+
+const API_URL = '';
+
+async function scrubText(raw) {
+  const res = await fetch(`${API_URL}/scrub`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({text: raw})
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  const d = await res.json();
+  // highlight redacted tokens in scrubbed text
+  const html = esc(d.scrubbed_text).replace(/\[([A-Z_]+_\d+)\]/g,
+    (_,t) => `<span class="rtag">[${t}]</span>`);
+  const total = d.entities_found || 0;
+  const risk = d.risk_level || 'low';
+  return {html, total, risk, report: d.report, session_key: d.session_key, elapsed_ms: d.elapsed_ms};
+}
+
+function agChip(ag,i,rid){
+  return`<div class="ag" id="ag${i}${rid}">
+    <svg class="ag-svg" viewBox="0 0 24 24"><use href="#${ag.ico}"/></svg>
+    <span class="ag-label">${ag.name}</span>
+    <span class="ag-sub" id="sub${i}${rid}"></span>
+    <div class="ag-spinner"><div class="sd"></div><div class="sd"></div><div class="sd"></div></div>
+    <span class="ag-check">✓</span>
+  </div>`;
+}
+
+async function submit(){
+  if(busy)return;
+  const inp=document.getElementById('inp');
+  const raw=inp.value.trim();if(!raw)return;
+  busy=true;document.getElementById('sbtn').disabled=true;
+  document.getElementById('landing').classList.add('gone');
+  inp.value='';inp.style.height='auto';
+
+  const msgs=document.getElementById('msgs');
+  const t0=Date.now();
+  msgs.innerHTML+=`<div class="mu"><div class="u-bub">${esc(raw)}</div></div>`;
+  scrl();
+
+  const rid='r'+Date.now();
+  msgs.innerHTML+=`
+    <div class="ma" id="${rid}">
+      <div class="a-icon">
+        <svg width="18" height="18" style="color:#0e0c09"><use href="#ico-shield"/></svg>
+        <div class="a-dot"></div>
+      </div>
+      <div class="a-body">
+        <div class="a-name">Aria</div>
+        <div class="agents" id="ags${rid}">
+          ${AGENTS.map((ag,i)=>agChip(ag,i,rid)).join('')}
+        </div>
+        <div id="res${rid}" style="display:none;opacity:0;transition:opacity .4s;"></div>
+      </div>
+    </div>`;
+  scrl();
+
+  function activate(i){
+    const el=document.getElementById(`ag${i}${rid}`);
+    const sub=document.getElementById(`sub${i}${rid}`);
+    if(!el)return;
+    el.className='ag appear active';
+    if(sub)sub.textContent='— '+AGENTS[i].active;
+    scrl();
+  }
+  function done(i){
+    const el=document.getElementById(`ag${i}${rid}`);
+    const sub=document.getElementById(`sub${i}${rid}`);
+    if(!el)return;
+    el.className='ag done';
+    if(sub)sub.textContent='— '+AGENTS[i].done;
+  }
+
+  // animate agents while real API call runs
+  activate(0);
+  const t1=setTimeout(()=>{done(0);activate(1);scrl();},900);
+  const t2=setTimeout(()=>{done(1);activate(2);scrl();},1750);
+
+  let apiResult, apiErr;
+  try {
+    apiResult = await scrubText(raw);
+  } catch(e) {
+    apiErr = e;
+  }
+
+  // ensure all agents show done before revealing result
+  clearTimeout(t1);clearTimeout(t2);
+  done(0);done(1);done(2);
+  scrl();
+
+  setTimeout(()=>{
+    if(apiErr){
+      const res=document.getElementById('res'+rid);
+      if(res){res.style.display='block';res.innerHTML=`<p class="a-text" style="color:var(--hi)">Connection error: ${apiErr.message}. Check that the API key is set in Render.</p>`;}
+      res.style.opacity='1';
+    } else {
+      const {html,total,risk,session_key,elapsed_ms}=apiResult;
+      showResult(rid,html,[],total,t0,raw,risk,session_key,elapsed_ms);
+    }
+    busy=false;document.getElementById('sbtn').disabled=false;
+  },350);
+}
+
+function showResult(rid,html,items,total,t0,raw,riskFromApi,skFromApi,msFromApi){
+  const rl=riskFromApi==='high'?'hi':riskFromApi==='medium'?'me':'lo';
+  const rlbl={hi:'HIGH RISK',me:'MED RISK',lo:'LOW RISK'}[rl];
+  const ms=msFromApi||(Date.now()-t0);
+  const sk=skFromApi||('#'+Math.floor(1000+Math.random()*9000)+'-'+
+    String.fromCharCode(65+~~(Math.random()*26))+String.fromCharCode(65+~~(Math.random()*26))+~~(10+Math.random()*90));
+  const aid='aud'+rid;
+  const intro=total>0
+    ?`Scrub complete — <strong>${total} sensitive entit${total!==1?'ies':'y'}</strong> redacted in ${ms}ms. Safe to share.`
+    :`No sensitive data detected. This text is clean.`;
+
+  const rows=items.map(it=>`
+    <div class="audit-row">
+      <span class="audit-k">${it.lbl}</span>
+      <span class="audit-v">${it.n} hit${it.n!==1?'s':''}</span>
+    </div>`).join('');
+
+  const res=document.getElementById('res'+rid);
+  if(!res)return;
+  res.style.display='block';
+  res.innerHTML=`
+    <p class="a-text">${intro}</p>
+    ${total>0?`<div class="red-block">${html}</div>`:''}
+    <div class="actions">
+      <button class="act" title="Copy clean text" onclick="cpText(this,'${rid}')">
+        <svg class="act-svg"><use href="#ico-copy"/></svg>
+      </button>
+      <button class="act" title="Good response">
+        <svg class="act-svg"><use href="#ico-up"/></svg>
+      </button>
+      <button class="act" title="Bad response">
+        <svg class="act-svg"><use href="#ico-dn"/></svg>
+      </button>
+      ${total>0?`<button class="risk-chip r-${rl}" onclick="togAudit('${aid}')">${rlbl} · ${total} found ›</button>`:''}
+    </div>
+    <div class="audit" id="${aid}">
+      ${rows}
+      <div class="audit-meta">
+        <span class="audit-pill">POPIA / GDPR / PCI-DSS</span>
+        <span class="audit-pill">⚿ ${sk}</span>
+        <span class="audit-pill">In-memory only</span>
+      </div>
+    </div>
+    <div class="gap"></div>`;
+  requestAnimationFrame(()=>{res.style.opacity='1';});
+
+  const ags=document.getElementById('ags'+rid);
+  if(ags){ags.style.transition='opacity .3s,max-height .4s';ags.style.maxHeight=ags.offsetHeight+'px';setTimeout(()=>{ags.style.opacity='0';ags.style.maxHeight='0';ags.style.overflow='hidden';},150);}
+  scrl();
+
+  SDATA.unshift({n:raw.substring(0,30)+(raw.length>30?'…':''),s:`${total} entit${total!==1?'ies':'y'} masked`,r:rl,t:'Just now'});
+  buildSessions();
+  setTimeout(()=>document.getElementById('inp').focus(),80);
+}
+
+function togAudit(id){document.getElementById(id)?.classList.toggle('show');scrl();}
+function cpText(btn,rid){
+  const block=btn.closest('.a-body')?.querySelector('.red-block');
+  if(!block)return;
+  try{navigator.clipboard.writeText(block.innerText);const o=btn.innerHTML;btn.innerHTML='<svg class="act-svg" viewBox="0 0 24 24" fill="none" stroke="var(--lo)" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';setTimeout(()=>{btn.innerHTML=o;},2000);}catch(e){}
+}
+function scrl(){const c=document.getElementById('chat');requestAnimationFrame(()=>{c.scrollTop=c.scrollHeight;});}
+
+buildSessions();
+document.getElementById('inp').focus();
+
+/* ── ONBOARDING ── */
+const OB_STEPS = [
+  {
+    icon: `<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L4 6v6c0 5.25 3.5 10 8 12 4.5-2 8-6.75 8-12V6L12 2z" stroke-width="1.4"/>
+      <polyline points="9 12 11 14 15 10" stroke-width="1.8"/>
+    </svg>`,
+    title: 'Welcome to Paste Gate',
+    body: 'Aria is your AI-powered redaction assistant. Before any text reaches an AI model, Aria silently strips out PII and secrets — keeping your data private at all times.',
+    extra: '',
+  },
+  {
+    icon: `<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="3"/>
+      <line x1="3" y1="9" x2="21" y2="9"/>
+      <line x1="9" y1="21" x2="9" y2="9"/>
+    </svg>`,
+    title: 'Paste anything',
+    body: 'Drop any raw text into the box — support transcripts, API logs, patient notes, config files, SQL dumps. Hit the <strong>shield button</strong> or press <strong>Enter</strong> to start a scrub.',
+    extra: `<div style="margin-top:18px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--txm);text-align:left;line-height:1.7;">
+      Hi, my name is <span style="color:var(--ac)">[NAME_REDACTED_1]</span>. My SA ID is <span style="color:var(--ac)">[SA_ID_REDACTED_1]</span>.<br>
+      Email: <span style="color:var(--ac)">[EMAIL_REDACTED_1]</span>
+    </div>`,
+  },
+  {
+    icon: '',
+    title: 'Three agents, one pipeline',
+    body: 'Your text flows through three specialised AI agents — each with a distinct job.',
+    extra: `<div class="ob-agents">
+      <div class="ob-ag">
+        <div class="ob-ag-ico s"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="6"/><line x1="14.5" y1="14.5" x2="20" y2="20"/><line x1="7" y1="10" x2="13" y2="10"/></svg></div>
+        <div class="ob-ag-txt"><div class="ob-ag-name">Scrubber</div><div class="ob-ag-desc">Detects and replaces PII using regex + LLM reasoning</div></div>
+      </div>
+      <div class="ob-ag">
+        <div class="ob-ag-ico j"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M5 21h14"/><path d="M5 9l-2 5h4L5 9z"/><path d="M19 9l-2 5h4L19 9z"/><line x1="5" y1="9" x2="19" y2="9"/></svg></div>
+        <div class="ob-ag-txt"><div class="ob-ag-name">Judge</div><div class="ob-ag-desc">Reviews the scrubbed text for anything that slipped through</div></div>
+      </div>
+      <div class="ob-ag">
+        <div class="ob-ag-ico r"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg></div>
+        <div class="ob-ag-txt"><div class="ob-ag-name">Reporter</div><div class="ob-ag-desc">Writes your compliance audit record with risk rating</div></div>
+      </div>
+    </div>`,
+  },
+  {
+    icon: `<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--lo)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="11" width="14" height="10" rx="2"/>
+      <path d="M8 11V7a4 4 0 018 0v4"/>
+      <circle cx="12" cy="16" r="1.5" fill="var(--lo)" stroke="none"/>
+    </svg>`,
+    title: 'Your data stays yours',
+    body: 'Raw text is processed in-memory and never stored or transmitted unredacted. Paste Gate runs on Groq — fast, free, and private. Audit reports are saved locally.',
+    extra: `<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      <span style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--txd);background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 10px;">POPIA compliant</span>
+      <span style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--txd);background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 10px;">GDPR ready</span>
+      <span style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--txd);background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 10px;">PCI-DSS baseline</span>
+    </div>`,
+  },
+];
+
+let obStep = 0;
+
+function obRender() {
+  const s = OB_STEPS[obStep];
+  const body = document.getElementById('obBody');
+  const isLast = obStep === OB_STEPS.length - 1;
+
+  body.innerHTML = `
+    ${s.icon ? `<div class="ob-icon">${s.icon}</div>` : ''}
+    <div class="ob-title">${s.title}</div>
+    <div class="ob-text">${s.body}</div>
+    ${s.extra}
+  `;
+
+  // Progress pips
+  for (let i = 0; i < OB_STEPS.length; i++) {
+    document.getElementById('pp' + i).className = 'ob-pip' + (i <= obStep ? ' done' : '');
+    document.getElementById('od' + i).className = 'ob-dot' + (i === obStep ? ' on' : '');
+  }
+
+  const nextBtn = document.getElementById('obNext');
+  const skipBtn = document.getElementById('obSkip');
+  nextBtn.textContent = isLast ? 'Get started' : 'Next →';
+  skipBtn.style.visibility = isLast ? 'hidden' : 'visible';
+}
+
+function obNext() {
+  if (obStep < OB_STEPS.length - 1) {
+    obStep++;
+    obRender();
+  } else {
+    obDone();
+  }
+}
+
+function obDone() {
+  try { localStorage.setItem('pg_onboarded', '1'); } catch(e) {}
+  const el = document.getElementById('obOv');
+  el.classList.add('out');
+  setTimeout(() => { el.style.display = 'none'; }, 320);
+}
+
+// Init — show only if not seen before
+try {
+  if (!localStorage.getItem('pg_onboarded')) {
+    obRender();
+  } else {
+    document.getElementById('obOv').style.display = 'none';
+  }
+} catch(e) {
+  obRender(); // if localStorage is blocked, show it anyway
+}
+</script>
