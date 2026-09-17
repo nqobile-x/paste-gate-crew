@@ -1,0 +1,44 @@
+<!doctype html><html><body>
+<canvas id="c"></canvas>
+<script>
+function makeIcon(size) {
+  const c = document.getElementById('c');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const r = size * 0.14;
+  // background
+  ctx.fillStyle = '#c9a96e';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, r);
+  ctx.fill();
+  // shield
+  ctx.strokeStyle = '#0e0c09';
+  ctx.lineWidth = size * 0.09;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const s = size * 0.28;
+  ctx.beginPath();
+  ctx.moveTo(size/2, s * 0.55);
+  ctx.lineTo(s * 0.55, s * 0.85);
+  ctx.quadraticCurveTo(s * 0.55, size - s * 0.55, size/2, size - s * 0.4);
+  ctx.quadraticCurveTo(size - s * 0.55, size - s * 0.55, size - s * 0.55, s * 0.85);
+  ctx.lineTo(size/2, s * 0.55);
+  ctx.stroke();
+  // checkmark
+  ctx.lineWidth = size * 0.08;
+  ctx.beginPath();
+  ctx.moveTo(size*0.36, size*0.5);
+  ctx.lineTo(size*0.46, size*0.62);
+  ctx.lineTo(size*0.64, size*0.42);
+  ctx.stroke();
+  return c.toDataURL('image/png');
+}
+[16,48,128].forEach(size => {
+  const url = makeIcon(size);
+  const a = document.createElement('a');
+  a.href = url; a.download = `icon${size}.png`; a.textContent = `Download icon${size}.png`;
+  a.style.display='block;margin:8px;';
+  document.body.appendChild(a);
+});
+</script>
+</body></html>
