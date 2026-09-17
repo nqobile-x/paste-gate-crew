@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: paste-gate-crew
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install uv && uv sync
+    startCommand: uv run uvicorn paste_gate_crew.api:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: MODEL
+        value: groq/openai/gpt-oss-20b
+      - key: LITELLM_DROP_PARAMS
+        value: "True"
+      - key: PYTHON_VERSION
+        value: "3.12"
