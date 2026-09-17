@@ -1,0 +1,43 @@
+scrub_task:
+  description: >
+    Take the following raw text and redact all PII and secrets. Replace each
+    detected item with a typed placeholder such as [SA_ID], [EMAIL], [PHONE],
+    [API_KEY], [JWT_TOKEN], [HOSTNAME]. Return only the redacted text.
+
+    Raw input:
+    {raw_text}
+  expected_output: >
+    The input text with all PII and secrets replaced by typed placeholders.
+    No original sensitive values should remain.
+  agent: scrubber
+
+judge_task:
+  description: >
+    Review the following pre-scrubbed text. Identify anything that still appears
+    sensitive — contextual leaks, partial identifiers, obfuscated values, or
+    internal names. List each concern with a brief explanation.
+
+    Scrubbed text:
+    {scrubbed_text}
+  expected_output: >
+    A list of residual concerns (if any), each with: the suspicious fragment,
+    the reason it may be sensitive, and a recommended action. If nothing is
+    found, state "No residual sensitive data detected."
+  agent: judge
+  context:
+    - scrub_task
+
+report_task:
+  description: >
+    Using the scrubber's redacted output and the judge's review, produce a
+    structured redaction audit report. Include: categories of PII detected,
+    count of redactions, any judge flags, and an overall risk rating (Low /
+    Medium / High).
+  expected_output: >
+    A structured markdown report with sections: Summary, PII Categories Found,
+    Redaction Count, Judge Flags, and Overall Risk Rating.
+  agent: reporter
+  context:
+    - scrub_task
+    - judge_task
+  output_file: redaction_report.md

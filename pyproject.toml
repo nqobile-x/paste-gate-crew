@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "paste-gate-crew"
+version = "0.1.0"
+description = "PII and secret redaction crew — Scrubber → Judge → Reporter"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai[litellm,tools]>=0.98.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.scripts]
+paste-gate-crew = "paste_gate_crew.main:run"
+run_crew = "paste_gate_crew.main:run"
+serve = "paste_gate_crew.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/paste_gate_crew"]
+
+[tool.crewai]
+type = "crew"
+project_id = "6d3261a1-2895-4577-a3be-827cb6cb62bc"
