@@ -76,12 +76,23 @@ async def scrub(req: ScrubRequest):
     t0 = time.monotonic()
 
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None,
-        lambda: PasteGateCrew().crew().kickoff(
-            inputs={"raw_text": req.text, "scrubbed_text": ""}
-        ),
-    )
+
+    def run_crew():
+        for attempt in range(4):
+            try:
+                return PasteGateCrew().crew().kickoff(
+                    inputs={"raw_text": req.text, "scrubbed_text": ""}
+                )
+            except Exception as e:
+                msg = str(e).lower()
+                if "rate_limit" in msg or "ratelimit" in msg or "rate limit" in msg:
+                    wait = 2 ** attempt  # 1s, 2s, 4s, 8s
+                    time.sleep(wait)
+                    continue
+                raise
+        raise HTTPException(status_code=429, detail="Groq rate limit — please retry in a few seconds")
+
+    result = await loop.run_in_executor(None, run_crew)
 
     elapsed = int((time.monotonic() - t0) * 1000)
     report_str = str(result)
