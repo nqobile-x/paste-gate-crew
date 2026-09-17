@@ -436,13 +436,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 </div>
 
 <script>
-const SDATA=[
-  {n:'Stripe Webhook Payload',s:'3 PII entities masked',r:'hi',t:'2m ago'},
-  {n:'User Auth Logs (dump)',s:'JWT tokens sanitized',r:'me',t:'1h ago'},
-  {n:'Customer Feedback Batch',s:'Clean — no violations',r:'lo',t:'Yesterday'},
-  {n:'IBS Config Properties',s:'5 API keys redacted',r:'hi',t:'Sep 16'},
-  {n:'Slack DM Export',s:'12 emails masked',r:'me',t:'Sep 15'},
-];
+let SDATA=[];
+try{const raw=localStorage.getItem('pg_sessions');if(raw)SDATA=JSON.parse(raw);}catch(e){}
+function saveSessions(){try{localStorage.setItem('pg_sessions',JSON.stringify(SDATA.slice(0,50)));}catch(e){}}
 const PRESETS={
   'Customer support transcript':'Agent: Hi Sarah, I can see your account sarah.jenkins@vertexcloud.io is linked to card 4532-8921-9981-3012. Your SSN on file is 482-19-8821. Can you confirm your address at 424 Elm St, Austin TX? The refund of $349 will be processed.',
   'AWS credentials & DB URI':'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY\nDB_URI=postgresql://admin:p@ssw0rd123@db.internal.prod.fnb.co.za:5432/users',
@@ -644,7 +640,8 @@ function showResult(rid,html,items,total,t0,raw,riskFromApi,skFromApi,msFromApi)
   if(ags){ags.style.transition='opacity .3s,max-height .4s';ags.style.maxHeight=ags.offsetHeight+'px';setTimeout(()=>{ags.style.opacity='0';ags.style.maxHeight='0';ags.style.overflow='hidden';},150);}
   scrl();
 
-  SDATA.unshift({n:raw.substring(0,30)+(raw.length>30?'…':''),s:`${total} entit${total!==1?'ies':'y'} masked`,r:rl,t:'Just now'});
+  SDATA.unshift({n:raw.substring(0,30)+(raw.length>30?'…':''),s:`${total} entit${total!==1?'ies':'y'} masked`,r:rl,t:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+  saveSessions();
   buildSessions();
   setTimeout(()=>document.getElementById('inp').focus(),80);
 }
