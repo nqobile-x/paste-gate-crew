@@ -100,32 +100,53 @@ async function scrub() {
   }, 1000);
   timerEl.textContent = `${steps[0]} 0s`;
 
-  // send to background worker — survives popup closing
-  chrome.runtime.sendMessage({type: 'SCRUB_POPUP', text: raw}, (resp) => {
+  function showResult(d) {
     clearInterval(ticker);
-    document.getElementById('timer').style.display = 'none';
+    timerEl.style.display = 'none';
     btn.disabled = false;
     btnTxt.textContent = 'Scrub with Aria';
-
-    if (!resp || !resp.ok) {
-      document.getElementById('resultText').textContent = 'Error: ' + (resp?.error || 'no response');
-      document.getElementById('result').style.display = 'block';
-      return;
-    }
-    const d = resp.data;
     lastScrubbed = d.scrubbed_text;
     const html = d.scrubbed_text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/\[([A-Z_]+_?\d*)\]/g, '<span class="rtag">[$1]</span>');
     document.getElementById('resultText').innerHTML = html;
     const rl = d.risk_level==='high'?'hi':d.risk_level==='medium'?'me':'lo';
-    const rlbl = {hi:'HIGH RISK',me:'MED RISK',lo:'LOW RISK'}[rl];
     document.getElementById('badges').innerHTML =
-      `<span class="badge ${rl}">${rlbl}</span>` +
+      `<span class="badge ${rl}">${{hi:'HIGH RISK',me:'MED RISK',lo:'LOW RISK'}[rl]}</span>` +
       `<span class="badge lo">${d.entities_found} entit${d.entities_found!==1?'ies':'y'} redacted</span>`;
     document.getElementById('sk').textContent = d.session_key;
     document.getElementById('result').style.display = 'block';
     document.getElementById('copyBtn').style.display = 'inline-block';
-  });
+  }
+
+  function showError(msg) {
+    clearInterval(ticker);
+    timerEl.style.display = 'none';
+    btn.disabled = false;
+    btnTxt.textContent = 'Scrub with Aria';
+    document.getElementById('resultText').textContent = '❌ ' + msg;
+    document.getElementById('result').style.display = 'block';
+  }
+
+  // try background worker first, fall back to direct fetch
+  try {
+    chrome.runtime.sendMessage({type: 'SCRUB_POPUP', text: raw}, (resp) => {
+      if (chrome.runtime.lastError || !resp) {
+        // background didn't respond — call API directly
+        fetch('https://paste-gate-crew.onrender.com/scrub', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({text: raw})
+        }).then(r => r.json()).then(showResult).catch(e => showError(e.message));
+        return;
+      }
+      if (!resp.ok) { showError(resp.error || 'agent error'); return; }
+      showResult(resp.data);
+    });
+  } catch(e) {
+    fetch('https://paste-gate-crew.onrender.com/scrub', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({text: raw})
+    }).then(r => r.json()).then(showResult).catch(err => showError(err.message));
+  }
 }
 
 function copyResult() {
