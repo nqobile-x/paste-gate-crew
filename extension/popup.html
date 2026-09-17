@@ -62,6 +62,8 @@ footer{padding:10px 14px;border-top:1px solid var(--bdr);display:flex;justify-co
     <div class="spinner" id="spin"></div>
   </button>
 
+  <div id="timer" style="display:none;text-align:center;font-size:11px;color:var(--ac);font-family:monospace;margin-top:8px;padding:6px;background:var(--surf2);border-radius:8px;border:1px solid var(--bdr);"></div>
+
   <div class="result" id="result">
     <div class="result-label">Scrubbed output</div>
     <div class="result-text" id="resultText"></div>
@@ -90,6 +92,12 @@ async function scrub() {
   spin.style.display = 'block';
   document.getElementById('result').style.display = 'none';
   document.getElementById('copyBtn').style.display = 'none';
+  // show live elapsed timer so user knows it's working
+  const timerEl = document.getElementById('timer');
+  timerEl.textContent = 'Agents working… 0s';
+  timerEl.style.display = 'block';
+  let secs = 0;
+  const ticker = setInterval(() => { secs++; timerEl.textContent = `Scrubber → Judge → Reporter… ${secs}s`; }, 1000);
 
   try {
     const res = await fetch(API, {
@@ -119,6 +127,8 @@ async function scrub() {
     document.getElementById('result').style.display = 'block';
   }
 
+  clearInterval(ticker);
+  document.getElementById('timer').style.display = 'none';
   btn.disabled = false;
   btnTxt.style.display = 'inline';
   spin.style.display = 'none';
