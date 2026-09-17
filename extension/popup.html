@@ -127,25 +127,30 @@ async function scrub() {
     document.getElementById('result').style.display = 'block';
   }
 
+  async function callApi() {
+    const r = await fetch('https://paste-gate-crew.onrender.com/scrub', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({text: raw})
+    });
+    if (!r.ok) {
+      const txt = await r.text();
+      throw new Error(`Server ${r.status}: ${txt.slice(0,120)}`);
+    }
+    return r.json();
+  }
+
   // try background worker first, fall back to direct fetch
   try {
     chrome.runtime.sendMessage({type: 'SCRUB_POPUP', text: raw}, (resp) => {
       if (chrome.runtime.lastError || !resp) {
-        // background didn't respond — call API directly
-        fetch('https://paste-gate-crew.onrender.com/scrub', {
-          method: 'POST', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({text: raw})
-        }).then(r => r.json()).then(showResult).catch(e => showError(e.message));
+        callApi().then(showResult).catch(e => showError(e.message));
         return;
       }
       if (!resp.ok) { showError(resp.error || 'agent error'); return; }
       showResult(resp.data);
     });
   } catch(e) {
-    fetch('https://paste-gate-crew.onrender.com/scrub', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({text: raw})
-    }).then(r => r.json()).then(showResult).catch(err => showError(err.message));
+    callApi().then(showResult).catch(err => showError(err.message));
   }
 }
 
