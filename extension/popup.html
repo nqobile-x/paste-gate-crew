@@ -84,27 +84,28 @@ async function scrub() {
   const raw = document.getElementById('inp').value.trim();
   if (!raw) return;
   const btn = document.getElementById('btn');
-  const spin = document.getElementById('spin');
   const btnTxt = document.getElementById('btnTxt');
   btn.disabled = true;
-  btnTxt.style.display = 'none';
-  spin.style.display = 'block';
+  btnTxt.textContent = '⏳ Working…';
   document.getElementById('result').style.display = 'none';
   document.getElementById('copyBtn').style.display = 'none';
-  // show live elapsed timer so user knows it's working
   const timerEl = document.getElementById('timer');
-  timerEl.textContent = 'Agents working… 0s';
   timerEl.style.display = 'block';
+  const steps = ['🔍 Scrubber scanning…','⚖️ Judge reviewing…','📋 Reporter writing…'];
   let secs = 0;
-  const ticker = setInterval(() => { secs++; timerEl.textContent = `Scrubber → Judge → Reporter… ${secs}s`; }, 1000);
+  const ticker = setInterval(() => {
+    secs++;
+    const step = steps[Math.min(Math.floor(secs/8), steps.length-1)];
+    timerEl.textContent = `${step} ${secs}s`;
+  }, 1000);
+  timerEl.textContent = `${steps[0]} 0s`;
 
   // send to background worker — survives popup closing
   chrome.runtime.sendMessage({type: 'SCRUB_POPUP', text: raw}, (resp) => {
     clearInterval(ticker);
     document.getElementById('timer').style.display = 'none';
     btn.disabled = false;
-    btnTxt.style.display = 'inline';
-    spin.style.display = 'none';
+    btnTxt.textContent = 'Scrub with Aria';
 
     if (!resp || !resp.ok) {
       document.getElementById('resultText').textContent = 'Error: ' + (resp?.error || 'no response');
