@@ -78,7 +78,6 @@ footer{padding:10px 14px;border-top:1px solid var(--bdr);display:flex;justify-co
 </footer>
 
 <script>
-const API = 'https://paste-gate-crew.onrender.com/scrub';
 let lastScrubbed = '';
 
 async function scrub() {
@@ -99,39 +98,33 @@ async function scrub() {
   let secs = 0;
   const ticker = setInterval(() => { secs++; timerEl.textContent = `Scrubber → Judge → Reporter… ${secs}s`; }, 1000);
 
-  try {
-    const res = await fetch(API, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({text: raw})
-    });
-    const d = await res.json();
-    lastScrubbed = d.scrubbed_text;
+  // send to background worker — survives popup closing
+  chrome.runtime.sendMessage({type: 'SCRUB_POPUP', text: raw}, (resp) => {
+    clearInterval(ticker);
+    document.getElementById('timer').style.display = 'none';
+    btn.disabled = false;
+    btnTxt.style.display = 'inline';
+    spin.style.display = 'none';
 
+    if (!resp || !resp.ok) {
+      document.getElementById('resultText').textContent = 'Error: ' + (resp?.error || 'no response');
+      document.getElementById('result').style.display = 'block';
+      return;
+    }
+    const d = resp.data;
+    lastScrubbed = d.scrubbed_text;
     const html = d.scrubbed_text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/\[([A-Z_]+_?\d*)\]/g, '<span class="rtag">[$1]</span>');
-
     document.getElementById('resultText').innerHTML = html;
-
     const rl = d.risk_level==='high'?'hi':d.risk_level==='medium'?'me':'lo';
     const rlbl = {hi:'HIGH RISK',me:'MED RISK',lo:'LOW RISK'}[rl];
     document.getElementById('badges').innerHTML =
       `<span class="badge ${rl}">${rlbl}</span>` +
       `<span class="badge lo">${d.entities_found} entit${d.entities_found!==1?'ies':'y'} redacted</span>`;
-
     document.getElementById('sk').textContent = d.session_key;
     document.getElementById('result').style.display = 'block';
     document.getElementById('copyBtn').style.display = 'inline-block';
-  } catch(e) {
-    document.getElementById('resultText').textContent = 'Error: ' + e.message;
-    document.getElementById('result').style.display = 'block';
-  }
-
-  clearInterval(ticker);
-  document.getElementById('timer').style.display = 'none';
-  btn.disabled = false;
-  btnTxt.style.display = 'inline';
-  spin.style.display = 'none';
+  });
 }
 
 function copyResult() {
